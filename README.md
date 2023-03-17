@@ -121,4 +121,4 @@ Tips:
 
 --- 
 
-![](images/all.png)
+![](images/2dplots.png) 
