@@ -67,7 +67,7 @@ Create an instance of the ```TMM``` class.
 
 ```
 freq = np.linspace(170, 210, 30) 
-theta = np.array(0, 60, 60) 
+theta = np.linspace(0, 60, 60) 
 
 tmm = vtmmpy.TMM(freq, 
                 theta, 
