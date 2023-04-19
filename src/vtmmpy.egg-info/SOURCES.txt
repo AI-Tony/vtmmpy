@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+setup.cfg
+src/vtmmpy/__init__.py
+src/vtmmpy.egg-info/PKG-INFO
+src/vtmmpy.egg-info/SOURCES.txt
+src/vtmmpy.egg-info/dependency_links.txt
+src/vtmmpy.egg-info/top_level.txt

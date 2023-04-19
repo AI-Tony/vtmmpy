@@ -1,56 +1,14 @@
 # **Vectorized Transfer Matrix Method Python** 
 The transfer matrix method (TMM) is an analytic approach for obtaining the reflection and transmission coefficients in stratified media. vtmmpy is a vectorised implementation of the TMM written in Python. It has a focus on speed and ease of use. 
 
-![](images/MTM.png)
-
-### **Mathematical background**
-
----
-
-$$
-\mathbf{M}_{TM}^{(\ell)} = 
-\begin{bmatrix}
- \cos(\beta_\ell d_\ell) & \sin(\beta_\ell d_\ell)n_\ell^2/\beta_\ell \\
--\sin(\beta_\ell d_\ell)\beta_\ell/n_\ell^2 & \cos(\beta_\ell d_\ell)
-\end{bmatrix}
-\hspace{1cm}
-\mathbf{M}_{TE}^{(\ell)} = 
-\begin{bmatrix}
- \cos(\beta_\ell d_\ell) & \sin(\beta_\ell d_\ell)/\beta_\ell \\
--\sin(\beta_\ell d_\ell)\beta_\ell & \cos(\beta_\ell d_\ell)
-\end{bmatrix}
-$$ 
-
-$$
-\mathbf{M} = \mathbf{M}^{(L)}\cdots\mathbf{M}^{(2)}\cdot\mathbf{M}^{(1)}
-$$
-
-$$
-r_{TM} = -\frac{\mathbf{M}_{TM}^{-1}n_t^2\beta_i-\mathbf{M}_{TM}^{-1}n_i^2\beta_t+i[\mathbf{M}_{TM}^{-1}n_i^2n_t^2+\mathbf{M}_{TM}^{-1}\beta_i\beta_t]}{\mathbf{M}_{TM}^{-1}n_t^2\beta_i+\mathbf{M}_{TM}^{-1}n_i^2\beta_t-i[\mathbf{M}_{TM}^{-1}n_i^2n_t^2-\mathbf{M}_{TM}^{-1}\beta_i\beta_t]}
-$$
-
-$$
-r_{TE} = -\frac{\mathbf{M}_{TM}^{-1}\beta_i-\mathbf{M}_{TM}^{-1}\beta_t+i[\mathbf{M}_{TM}^{-1}+\mathbf{M}_{TM}^{-1}\beta_i\beta_t]}{\mathbf{M}_{TM}^{-1}\beta_i+\mathbf{M}_{TM}^{-1}\beta_t-i[\mathbf{M}_{TM}^{-1}-\mathbf{M}_{TM}^{-1}\beta_i\beta_t]}
-$$
-
-$$
-t_{TM} = -\frac{2n_in_t\beta_i}{\mathbf{M}_{TM}^{-1}n_t^2\beta_i+\mathbf{M}_{TM}^{-1}n_i^2\beta_t-i[\mathbf{M}_{TM}^{-1}n_i^2n_t^2-\mathbf{M}_{TM}^{-1}\beta_i\beta_t]}
-$$
-
-$$
-t_{TE} = -\frac{2\beta_i}{\mathbf{M}_{TM}^{-1}\beta_i+\mathbf{M}_{TM}^{-1}\beta_t-i[\mathbf{M}_{TM}^{-1}-\mathbf{M}_{TM}^{-1}\beta_i\beta_t]}
-$$
+![](https://github.com/AI-Tony/vtmmpy/raw/master/images/MTM.png) 
 
 ### **Installation**
 
 ---
 
-Working on creating a pip package for the project. For now, simply run the commands below
-
 ```
-git clone git@github.com:AI-Tony/vtmmpy.git
-cd vtmmpy/modules
-mv vtmmpy.py <YOUR PATH OR PROJECT DIRECTORY> 
+pip install vtmmpy 
 ```
 
 ### **Usage**
@@ -67,7 +25,7 @@ Create an instance of the ```TMM``` class.
 
 ```
 freq = np.linspace(170, 210, 30) 
-theta = np.linspace(0, 60, 60) 
+theta = np.array(0, 60, 60) 
 
 tmm = vtmmpy.TMM(freq, 
                 theta, 
@@ -84,17 +42,21 @@ tmm = vtmmpy.TMM(freq,
 - incident_medium (optional): incident medium, default is air.
 - transmitted_medium (optional): transmitted medium, default is air. 
 
-Add multilayer metamaterial designs with the ```addDesign()``` method.
+Add multilayer metamaterial designs with the ```addDesign()``` method. 
 
 ```
-materials = ["sio2", "tio2", "sio2", "tio2", "sio2"] 
-thicknesses = [54, 92, 134, 112, 68] 
+materials = ["Ag", "SiO2", "Ag", "SiO2", "Ag"] 
+thicknesses = [15, 85, 15, 85, 15] 
 
 tmm.addDesign(materials, thicknesses)
 ```
 
 - materials: list of materials 
 - thicknesses: list of the corresponding material thicknesses 
+
+Internally, vtmmpy uses the [regidx](https://gitlab.com/benvial/refidx) Python package to download refractive index data from [refractiveindex.info](https://refractiveindex.info/) for your choosen materials and spectral range. At this point, you will be presented with a few options corresponding to the data source ("Page" dropdown in refractiveindex.info). Study these carefully and refer to [refractiveindex.info](https://refractiveindex.info/) for more detailed information about how the data were obtained. Your choice here could greatly impact the accuracy of your results.
+
+Under cirtain circumstances, it may also be necessary to change the "shelf" (see [refractiveindex.info](https://refractiveindex.info/) for details). By default the "main" shelf is used. This attribute can be changed as follows: ```tmm.shelf = <shelf>```.
 
 Optionally call the ```summary()``` and/or ```designs()``` methods to view the data currently held by the instance.
 
@@ -115,10 +77,12 @@ TTE = tmm.transmission("TE")
 Tips: 
  - The ```reflection()``` and ```transmission()``` methods return both complex parts. Use Python's built-in ```abs()``` function to obtain the magnitude.
  - The intensity is the square of the magnitude (eg. ```abs(reflection("TM"))**2```). 
- - The minimum number of dimensions for the output of ```reflection()``` and ```transmission()``` is 2. Therefore, when printing/plotting results, an index must be provided. 
+ - ```reflection()``` and ```transmission()``` return an ndarray with a minimum of 2 dimensions. The first dimension always corresponds to the number of designs. Therefore, when printing/plotting results, you must always index the first dimension (even if you only have 1 design). 
 
 ### **Examples**
 
 --- 
 
-![](images/2dplots.png) 
+
+
+![](https://github.com/AI-Tony/vtmmpy/raw/master/images/2dplots.png)

@@ -1,6 +1,51 @@
 import numpy as np
+import pandas as pd
+import refidx as ri 
+from IPython.display import clear_output 
 
-class TMM:
+
+class RefractiveIndex:
+    def __init__(self):
+        # self.shelf = "main"
+        self.__shelfs = ["main", "organic", "glass", "other"] 
+        self.__db = ri.DataBase()
+
+    def index(self, symbol): 
+        if symbol=="air": return 1
+        return self.__refractiveIndexInfo(symbol) 
+
+    def epsilon(self, symbol):
+        return self.index(symbol)**2
+
+    def __refractiveIndexInfo(self, book): 
+        wavelength = 1e6 * 2 * np.pi * 3e8 / self.w 
+        df = pd.DataFrame(columns=["Page", "Wavelength Range (μm)", "Comments"]) 
+        for shelf in self.__shelfs:
+            try:
+                pages = self.__db.materials[shelf][book]
+                print("{} found in {}".format(book, shelf))
+                break
+            except:
+                print("{} not in {}".format(book, shelf)) 
+                for parentbook in self.__db.materials[shelf].keys():
+                    try:
+                        pages = self.__db.materials[shelf][parentbook][book] 
+                        print("{} found in {}/{}".format(book, shelf, parentbook))
+                        break
+                    except:
+                        continue
+        for i, (key, value) in enumerate(pages.items()): 
+            df.loc[i] = [key, pages[key].wavelength_range, pages[key].info["comments"]] 
+        print("\nSelect an index [0-{}] for {} and press enter. Check refractiveindex.info for more details.\n".format(len(df)-1, book)) 
+        display(df) 
+        i = int(input()) 
+        clear_output()
+        mat = pages[df.iloc[i].Page] 
+        index = mat.get_index(wavelength) 
+        return np.conjugate(index) 
+
+
+class TMM(RefractiveIndex): 
     def __init__(self, 
             freq, 
             theta, 
@@ -9,6 +54,7 @@ class TMM:
             incident_medium="air", 
             transmitted_medium="air"): 
 
+        RefractiveIndex.__init__(self) 
         self.__theta = theta * np.pi/180 
         self.__freq = freq * f_scale 
         self.__f_scale = f_scale
@@ -31,7 +77,7 @@ class TMM:
             M  = self.__inverse(M) 
             r  = -(M[0,0,:,:,:]*bi*nt*nt - M[1,1,:,:,:]*bt*ni*ni + 1j*(M[1,0,:,:,:]*nt*nt*ni*ni + M[0,1,:,:,:]*bi*bt))/\
                   (M[0,0,:,:,:]*bi*nt*nt + M[1,1,:,:,:]*bt*ni*ni - 1j*(M[1,0,:,:,:]*nt*nt*ni*ni - M[0,1,:,:,:]*bi*bt)) 
-            return r 
+            return r
         except:
             raise Exception("no designs present. Use addDesign() method to add a design") 
 
@@ -48,7 +94,7 @@ class TMM:
             M  = self.__transferMatrix(polarization) 
             M  = self.__inverse(M) 
             t  = -2*ni*nt*bi / (M[0,0,:,:,:]*bi*nt*nt + M[1,1,:,:,:]*bt*ni*ni - 1j*(M[1,0,:,:,:]*nt*nt*ni*ni - M[0,1,:,:,:]*bi*bt)) 
-            return t 
+            return t
         except:
             raise Exception("no designs present. Use addDesign() method to add a design") 
 
@@ -70,30 +116,17 @@ class TMM:
         self.__calculateMaterialProperties() 
 
     def __calculateMaterialProperties(self): 
-        w = 2*np.pi*self.__freq[:,None] * np.ones(self.__dims[1:]) 
-        k0 = w / 3e8 
+        self.w = 2*np.pi*self.__freq[:,None] * np.ones(self.__dims[1:]) 
+        k0 = self.w / 3e8 
         kx = k0 * np.sin( self.__theta ) 
         material_set = set( self.__materials.flatten() )
         material_set.add( self.__incident_medium )
         material_set.add( self.__transmitted_medium ) 
         for mat in material_set:
             if mat not in self.__materialsProperties.keys(): 
-                n  = self.__refractiveIindex(mat, w) 
+                n = self.index(mat) 
                 beta = np.sqrt( k0**2 * n**2 - kx**2 ) 
                 self.__materialsProperties["{}".format(mat)] = (n, beta) 
-
-    def __refractiveIindex(self, mat, omega):
-        ri = np.ones( self.__dims[1:] ) 
-        if mat=="air": return 1.0 * ri 
-        elif mat=="sio2": return 1.45 * ri 
-        elif mat=="tio2": return 2.45 * ri 
-        elif mat=="sin": return 1.99 * ri
-        elif mat=="ito": 
-            w, gamma, E_inf, wp2 =  omega, 2.05e14, 3.91, 2.65e15**2 
-            eps = E_inf - wp2 / ( w**2 + 1j*gamma*w )
-            n = np.sqrt(  eps.real + np.sqrt( eps.real**2 + eps.imag**2 ) ) / np.sqrt(2) 
-            k = np.sqrt( -eps.real + np.sqrt( eps.real**2 + eps.imag**2 ) ) / np.sqrt(2) 
-            return ( n + 1j*k ) * ri
 
     def __transferMatrix(self, polarization):
         M            = np.zeros((2, 2, *self.__dims), dtype='cfloat') 
@@ -128,16 +161,12 @@ class TMM:
         return np.array( [ [A, B], [C, D] ], dtype='cfloat' ) 
 
     def __inverse(self, M):
-        try:
-            det = M[0,0,:,:,:]*M[1,1,:,:,:] - M[0,1,:,:,:]*M[1,0,:,:,:] 
-            A   = M[0,0,:,:,:] 
-            B   = M[0,1,:,:,:] 
-            C   = M[1,0,:,:,:] 
-            D   = M[1,1,:,:,:] 
-            return np.array( [ [D, -B], [-C, A] ], dtype='cfloat' ) / det 
-        except ZeroDivisionError: 
-            print("Warning: division by zero") 
-            return np.array( [ [0, -0], [-0, 0] ], dtype='cfloat' ) 
+        det = M[0,0,:,:,:]*M[1,1,:,:,:] - M[0,1,:,:,:]*M[1,0,:,:,:] 
+        A   = M[0,0,:,:,:] 
+        B   = M[0,1,:,:,:] 
+        C   = M[1,0,:,:,:] 
+        D   = M[1,1,:,:,:] 
+        return np.array( [ [D, -B], [-C, A] ], dtype='cfloat' ) / (det+1e-99) 
 
     def summary(self):
         print("\n Summary")
@@ -153,6 +182,6 @@ class TMM:
         try:
             zipped = zip(self.__materials,self.__thicknesses) 
             for pair in zipped:
-                print(pair)
+                print(pair) 
         except:
-            raise Exception("add designs with addDesign() before trying to call designs() method")
+            raise Exception("No designs found. Add designs with the addDesign() method.") 
