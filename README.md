@@ -1,7 +1,7 @@
 # **Vectorized Transfer Matrix Method Python** 
 The transfer matrix method (TMM) is an analytic approach for obtaining the reflection and transmission coefficients in stratified media. vtmmpy is a vectorised implementation of the TMM written in Python. It has a focus on speed and ease of use. 
 
-![](https://github.com/AI-Tony/vtmmpy/raw/master/images/MTM.png) 
+![](https://github.com/AI-Tony/vtmmpy/blob/main/images/MTM.png?raw=true) 
 
 ### **Installation**
 
@@ -54,9 +54,7 @@ tmm.addDesign(materials, thicknesses)
 - materials: list of materials 
 - thicknesses: list of the corresponding material thicknesses 
 
-Internally, vtmmpy uses the [regidx](https://gitlab.com/benvial/refidx) Python package to download refractive index data from [refractiveindex.info](https://refractiveindex.info/) for your choosen materials and spectral range. At this point, you will be presented with a few options corresponding to the data source ("Page" dropdown in refractiveindex.info). Study these carefully and refer to [refractiveindex.info](https://refractiveindex.info/) for more detailed information about how the data were obtained. Your choice here could greatly impact the accuracy of your results.
-
-Under cirtain circumstances, it may also be necessary to change the "shelf" (see [refractiveindex.info](https://refractiveindex.info/) for details). By default the "main" shelf is used. This attribute can be changed as follows: ```tmm.shelf = <shelf>```.
+Internally, vtmmpy uses the [regidx](https://gitlab.com/benvial/refidx) Python package to download refractive index data from [refractiveindex.info](https://refractiveindex.info/) for your choosen materials and spectral range. At this point, you will be presented with a few options corresponding to the data source ("Page" dropdown on refractiveindex.info). Study these carefully and refer to [refractiveindex.info](https://refractiveindex.info/) for more detailed information about how the data were obtained. Your choice here could greatly impact the accuracy of your results.
 
 Optionally call the ```summary()``` and/or ```designs()``` methods to view the data currently held by the instance.
 
@@ -85,4 +83,4 @@ Tips:
 
 
 
-![](https://github.com/AI-Tony/vtmmpy/raw/master/images/2dplots.png)
+![](https://github.com/AI-Tony/vtmmpy/blob/main/images/2dplots.png?raw=true)
