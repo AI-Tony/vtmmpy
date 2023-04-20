@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vtmmpy
-Version: 1.0.3
+Version: 1.0.4
 Summary: A vectorized implementation of the transfer matrix method
 Home-page: https://github.com/AI-Tony/vtmmpy/tree/main
 Author: Tony

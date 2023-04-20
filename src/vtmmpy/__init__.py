@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import pandas as pd
 import refidx as ri 
@@ -6,7 +7,6 @@ from IPython.display import clear_output
 
 class RefractiveIndex:
     def __init__(self):
-        # self.shelf = "main"
         self.__shelfs = ["main", "organic", "glass", "other"] 
         self.__db = ri.DataBase()
 
@@ -15,34 +15,51 @@ class RefractiveIndex:
         return self.__refractiveIndexInfo(symbol) 
 
     def epsilon(self, symbol):
-        return self.index(symbol)**2
+        return self.index(symbol)**2 
 
     def __refractiveIndexInfo(self, book): 
-        wavelength = 1e6 * 2 * np.pi * 3e8 / self.w 
+        wavelength = 1e6 * 2 * np.pi * 3e8 / self.w[:,0] 
+        pages = self.__findPages(book)
+        df = self.__constructPagesDF(pages, wavelength)
+        i = self.__userSeletPage(df, book) 
+        mat = pages[df.iloc[i].Page] 
+        index = mat.get_index(wavelength) 
+        return np.conjugate(index) 
+    
+    def __userSeletPage(self, df, book):
+        print("\nSelect an index [0-{}] for {} and press enter. Check refractiveindex.info for more details.\n".format(len(df)-1, book)) 
+        display(df) 
+        time.sleep(1)
+        i = int(input()) 
+        clear_output()
+        return i
+    
+    def __constructPagesDF(self, pages, wavelength):
         df = pd.DataFrame(columns=["Page", "Wavelength Range (μm)", "Comments"]) 
+        for i, (key, value) in enumerate(pages.items()): 
+            wr = pages[key].wavelength_range
+            info = pages[key].info["comments"]
+            if wr[0] < wavelength[-1] and wr[-1] > wavelength[0]: 
+                df.loc[i] = [key, wr, info] 
+        df = df.reset_index(drop=True)
+        return df
+    
+    def __findPages(self, book):
         for shelf in self.__shelfs:
             try:
                 pages = self.__db.materials[shelf][book]
                 print("{} found in {}".format(book, shelf))
-                break
+                return pages
             except:
                 print("{} not in {}".format(book, shelf)) 
                 for parentbook in self.__db.materials[shelf].keys():
                     try:
                         pages = self.__db.materials[shelf][parentbook][book] 
                         print("{} found in {}/{}".format(book, shelf, parentbook))
-                        break
+                        return pages
                     except:
                         continue
-        for i, (key, value) in enumerate(pages.items()): 
-            df.loc[i] = [key, pages[key].wavelength_range, pages[key].info["comments"]] 
-        print("\nSelect an index [0-{}] for {} and press enter. Check refractiveindex.info for more details.\n".format(len(df)-1, book)) 
-        display(df) 
-        i = int(input()) 
-        clear_output()
-        mat = pages[df.iloc[i].Page] 
-        index = mat.get_index(wavelength) 
-        return np.conjugate(index) 
+        print("{} not found. Check refractiveindex.info to make sure you have the right symbol".format(book))
 
 
 class TMM(RefractiveIndex): 
