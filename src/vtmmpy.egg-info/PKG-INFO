@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vtmmpy
-Version: 1.0.4
+Version: 1.0.6
 Summary: A vectorized implementation of the transfer matrix method
 Home-page: https://github.com/AI-Tony/vtmmpy/tree/main
 Author: Tony
@@ -59,8 +59,8 @@ tmm = vtmmpy.TMM(freq,
 Add multilayer metamaterial designs with the ```addDesign()``` method. 
 
 ```
-materials = ["Ag", "SiO2", "Ag", "SiO2", "Ag"] 
-thicknesses = [15, 85, 15, 85, 15] 
+materials   = ["Ag", "SiO2", "Ag", "SiO2", "Ag", "SiO2"] 
+thicknesses = [15, 85, 15, 85, 15, 85] 
 
 tmm.addDesign(materials, thicknesses)
 ```
@@ -75,6 +75,16 @@ Optionally call the ```summary()``` and/or ```designs()``` methods to view the d
 ```
 tmm.summary() 
 tmm.designs() 
+```
+
+Additionally, the ```tmm.opticalProperties()``` method can be used to obtain a dictionary of optical properties of the materials entered in the frequency range specified.
+
+```
+props = tmm.opticalProperties()
+
+print(props.keys()) # output: dict_keys(['air', 'SiO2', 'Ag'])
+print(props["Ag"]["n"]) # ouput is the refractive index of Ag
+print(props["Ag"]["beta"]) # ouput is the propagation constant of Ag
 ```
 
 Calculate the reflection/transmission coefficients by calling the appropriate method. You should specify wether you want the transverse magnetic/electric polarization by supplying the "TM" or "TE" flag, respectively.

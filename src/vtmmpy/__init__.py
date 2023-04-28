@@ -24,7 +24,7 @@ class RefractiveIndex:
         i = self.__userSeletPage(df, book) 
         mat = pages[df.iloc[i].Page] 
         index = mat.get_index(wavelength) 
-        return np.conjugate(index) 
+        return np.conjugate(index)[:,None] 
     
     def __userSeletPage(self, df, book):
         print("\nSelect an index [0-{}] for {} and press enter. Check refractiveindex.info for more details.\n".format(len(df)-1, book)) 
@@ -76,44 +76,38 @@ class TMM(RefractiveIndex):
         self.__freq = freq * f_scale 
         self.__f_scale = f_scale
         self.__l_scale = l_scale
-        self.__materialsProperties = {} 
+        self.__opticalProperties = {} 
         self.__incident_medium = incident_medium 
         self.__transmitted_medium = transmitted_medium 
 
     def reflection(self, polarization):
-        try:
-            if polarization == "TE":
-                ni = 1 
-                nt = 1 
-            elif polarization == "TM":
-                ni = self.__materialsProperties[self.__incident_medium][0] 
-                nt = self.__materialsProperties[self.__transmitted_medium][0] 
-            bi = self.__materialsProperties[self.__incident_medium][1] 
-            bt = self.__materialsProperties[self.__transmitted_medium][1] 
-            M  = self.__transferMatrix(polarization) 
-            M  = self.__inverse(M) 
-            r  = -(M[0,0,:,:,:]*bi*nt*nt - M[1,1,:,:,:]*bt*ni*ni + 1j*(M[1,0,:,:,:]*nt*nt*ni*ni + M[0,1,:,:,:]*bi*bt))/\
-                  (M[0,0,:,:,:]*bi*nt*nt + M[1,1,:,:,:]*bt*ni*ni - 1j*(M[1,0,:,:,:]*nt*nt*ni*ni - M[0,1,:,:,:]*bi*bt)) 
-            return r
-        except:
-            raise Exception("no designs present. Use addDesign() method to add a design") 
+        if polarization == "TE":
+            ni = 1 
+            nt = 1 
+        elif polarization == "TM":
+            ni = self.__opticalProperties[self.__incident_medium]["n"] 
+            nt = self.__opticalProperties[self.__transmitted_medium]["n"] 
+        bi = self.__opticalProperties[self.__incident_medium]["beta"] 
+        bt = self.__opticalProperties[self.__transmitted_medium]["beta"] 
+        M  = self.__transferMatrix(polarization) 
+        M  = self.__inverse(M) 
+        r  = -(M[0,0,:,:,:]*bi*nt*nt - M[1,1,:,:,:]*bt*ni*ni + 1j*(M[1,0,:,:,:]*nt*nt*ni*ni + M[0,1,:,:,:]*bi*bt))/\
+              (M[0,0,:,:,:]*bi*nt*nt + M[1,1,:,:,:]*bt*ni*ni - 1j*(M[1,0,:,:,:]*nt*nt*ni*ni - M[0,1,:,:,:]*bi*bt)) 
+        return r
 
     def transmission(self, polarization):
-        try:
-            if polarization == "TE":
-                ni = 1 
-                nt = 1 
-            elif polarization == "TM":
-                ni = self.__materialsProperties[self.__incident_medium][0] 
-                nt = self.__materialsProperties[self.__transmitted_medium][0] 
-            bi = self.__materialsProperties[self.__incident_medium][1] 
-            bt = self.__materialsProperties[self.__transmitted_medium][1] 
-            M  = self.__transferMatrix(polarization) 
-            M  = self.__inverse(M) 
-            t  = -2*ni*nt*bi / (M[0,0,:,:,:]*bi*nt*nt + M[1,1,:,:,:]*bt*ni*ni - 1j*(M[1,0,:,:,:]*nt*nt*ni*ni - M[0,1,:,:,:]*bi*bt)) 
-            return t
-        except:
-            raise Exception("no designs present. Use addDesign() method to add a design") 
+        if polarization == "TE":
+            ni = 1 
+            nt = 1 
+        elif polarization == "TM":
+            ni = self.__opticalProperties[self.__incident_medium]["n"] 
+            nt = self.__opticalProperties[self.__transmitted_medium]["n"] 
+        bi = self.__opticalProperties[self.__incident_medium]["beta"] 
+        bt = self.__opticalProperties[self.__transmitted_medium]["beta"] 
+        M  = self.__transferMatrix(polarization) 
+        M  = self.__inverse(M) 
+        t  = -2*ni*nt*bi / (M[0,0,:,:,:]*bi*nt*nt + M[1,1,:,:,:]*bt*ni*ni - 1j*(M[1,0,:,:,:]*nt*nt*ni*ni - M[0,1,:,:,:]*bi*bt)) 
+        return t
 
     def addDesign(self, materials, thicknesses): 
         materials = np.array(materials) 
@@ -140,10 +134,11 @@ class TMM(RefractiveIndex):
         material_set.add( self.__incident_medium )
         material_set.add( self.__transmitted_medium ) 
         for mat in material_set:
-            if mat not in self.__materialsProperties.keys(): 
+            if mat not in self.__opticalProperties.keys(): 
                 n = self.index(mat) 
                 beta = np.sqrt( k0**2 * n**2 - kx**2 ) 
-                self.__materialsProperties["{}".format(mat)] = (n, beta) 
+                tmp_dict = { "n": n, "beta": beta} 
+                self.__opticalProperties["{}".format(mat)] = tmp_dict 
 
     def __transferMatrix(self, polarization):
         M            = np.zeros((2, 2, *self.__dims), dtype='cfloat') 
@@ -162,8 +157,8 @@ class TMM(RefractiveIndex):
             if polarization == "TE":
                 n = 1
             elif polarization == "TM":
-                n[i,:,:] = self.__materialsProperties[ mat ][0] 
-            beta[i,:,:] = self.__materialsProperties[ mat ][1] 
+                n[i,:,:] = self.__opticalProperties[ mat ]["n"] 
+            beta[i,:,:] = self.__opticalProperties[ mat ]["beta"] 
         A =  np.cos( beta * d ) 
         B =  np.sin( beta * d ) * n * n / beta 
         C = -np.sin( beta * d ) * beta / (n * n) 
@@ -202,3 +197,6 @@ class TMM(RefractiveIndex):
                 print(pair) 
         except:
             raise Exception("No designs found. Add designs with the addDesign() method.") 
+            
+    def opticalProperties(self):
+        return self.__opticalProperties
